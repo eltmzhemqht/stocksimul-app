@@ -113,27 +113,35 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="modal-trade">
-        <DialogHeader>
-          <DialogTitle data-testid="text-modal-title">
+      <DialogContent 
+        className="w-[80vw] max-w-xs mx-auto p-2" 
+        style={{ 
+          maxWidth: '80vw',
+          width: '80vw',
+          margin: '0 auto',
+          padding: '8px'
+        }}
+        data-testid="modal-trade"
+      >
+        <DialogHeader className="text-center mb-4">
+          <DialogTitle data-testid="text-modal-title" className="text-lg">
             {type === "buy" ? "매수" : "매도"} - {stock.name}
           </DialogTitle>
-          <DialogDescription data-testid="text-modal-description">
-            거래할 수량을 입력하세요
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
+          {/* 수량 입력 - 세로 배치 */}
           <div className="space-y-2">
-            <Label htmlFor="quantity">수량</Label>
-            <div className="flex items-center gap-2">
+            <Label htmlFor="quantity" className="text-sm font-medium">수량</Label>
+            <div className="flex items-center justify-center gap-3">
               <Button
                 type="button"
                 variant="outline"
-                size="icon"
+                size="sm"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
                 data-testid="button-decrease-quantity"
+                className="w-10 h-10"
               >
                 <Minus className="w-4 h-4" />
               </Button>
@@ -146,7 +154,7 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
                   const maxQuantity = type === "sell" ? ownedShares : Infinity;
                   setQuantity(Math.min(newQuantity, maxQuantity));
                 }}
-                className="text-center font-mono"
+                className="text-center font-mono w-20"
                 min="1"
                 max={type === "sell" ? ownedShares : undefined}
                 data-testid="input-quantity"
@@ -154,67 +162,62 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
               <Button
                 type="button"
                 variant="outline"
-                size="icon"
+                size="sm"
                 onClick={() => {
                   const maxQuantity = type === "sell" ? ownedShares : Infinity;
                   setQuantity(Math.min(quantity + 1, maxQuantity));
                 }}
                 disabled={type === "sell" && quantity >= ownedShares}
                 data-testid="button-increase-quantity"
+                className="w-10 h-10"
               >
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-3 p-4 bg-muted rounded-lg">
+          {/* 거래 정보 - 컴팩트하게 */}
+          <div className="space-y-2 p-3 bg-muted rounded-lg text-sm">
             <div className="flex justify-between">
-              <p className="text-sm text-muted-foreground">현재가</p>
-              <p className="font-mono font-semibold" data-testid="text-trade-price">
+              <span className="text-muted-foreground">현재가</span>
+              <span className="font-mono font-semibold" data-testid="text-trade-price">
                 ₩{currentPrice.toLocaleString()}
-              </p>
+              </span>
             </div>
             <div className="flex justify-between">
-              <p className="text-sm text-muted-foreground">수량</p>
-              <p className="font-mono" data-testid="text-trade-quantity">
+              <span className="text-muted-foreground">수량</span>
+              <span className="font-mono" data-testid="text-trade-quantity">
                 {quantity}주
-              </p>
+              </span>
             </div>
-            <div className="flex justify-between pt-3 border-t">
-              <p className="font-semibold">총 금액</p>
-              <p className="font-mono font-bold text-lg" data-testid="text-trade-total">
+            <div className="flex justify-between pt-2 border-t font-semibold">
+              <span>총 금액</span>
+              <span className="font-mono" data-testid="text-trade-total">
                 ₩{total.toLocaleString()}
-              </p>
+              </span>
             </div>
             {type === "buy" && (
-              <div className="flex justify-between">
-                <p className="text-sm text-muted-foreground">보유 현금</p>
-                <p className={`font-mono text-sm ${canAfford ? "" : "text-destructive"}`} data-testid="text-trade-balance">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">보유 현금</span>
+                <span className={`font-mono ${canAfford ? "" : "text-destructive"}`} data-testid="text-trade-balance">
                   ₩{balance.toLocaleString()}
-                </p>
+                </span>
               </div>
             )}
             {type === "sell" && (
-              <div className="flex justify-between">
-                <p className="text-sm text-muted-foreground">보유 주식</p>
-                <p className={`font-mono text-sm ${canSell ? "" : "text-destructive"}`} data-testid="text-owned-shares">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">보유 주식</span>
+                <span className={`font-mono ${canSell ? "" : "text-destructive"}`} data-testid="text-owned-shares">
                   {ownedShares}주
-                </p>
+                </span>
               </div>
             )}
           </div>
 
-          <div className="flex gap-3">
+          {/* 버튼 - 세로 배치 */}
+          <div className="space-y-2">
             <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-              data-testid="button-cancel"
-            >
-              취소
-            </Button>
-            <Button
-              className="flex-1"
+              className="w-full"
               onClick={handleTrade}
               disabled={tradeMutation.isPending || !isTradeValid}
               variant={type === "buy" ? "default" : "destructive"}
@@ -225,6 +228,14 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
                 : type === "buy"
                 ? "매수 확인"
                 : "매도 확인"}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => onOpenChange(false)}
+              data-testid="button-cancel"
+            >
+              취소
             </Button>
           </div>
         </div>

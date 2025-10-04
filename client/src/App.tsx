@@ -5,8 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Navbar } from "@/components/navbar";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Skeleton } from "@/components/loading-skeleton";
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { 
   LazyDashboard, 
   LazyMarket, 
@@ -32,11 +33,29 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // StatusBar 설정
+    const setupStatusBar = async () => {
+      try {
+        await StatusBar.setStyle({ style: Style.Dark });
+        await StatusBar.setBackgroundColor({ color: '#000000' });
+        await StatusBar.setOverlaysWebView({ overlay: false });
+      } catch (error) {
+        console.log('StatusBar setup failed:', error);
+      }
+    };
+    
+    setupStatusBar();
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <div className="min-h-screen bg-background">
+            <div style={{ height: '120px', backgroundColor: '#FF0000', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold' }}>
+              상태바 영역 테스트 - 120px
+            </div>
             <Navbar />
             <ErrorBoundary>
               <Router />

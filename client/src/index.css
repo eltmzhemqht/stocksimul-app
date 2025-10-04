@@ -263,6 +263,58 @@
     user-select: none;
   }
 
+  /* Safe Area 지원 - 안드로이드 상태바 영역 */
+  .pt-safe-area-inset-top {
+    padding-top: env(safe-area-inset-top, 24px) !important;
+  }
+  
+  .safe-area-top {
+    padding-top: 60px !important;
+    margin-top: 60px !important;
+  }
+  
+  .pb-safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .pl-safe-area-inset-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  
+  .pr-safe-area-inset-right {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* 안드로이드 15 전용 상태바 영역 강제 적용 */
+  :root {
+    --safe-area-top: 60px;
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      padding-top: var(--safe-area-top) !important;
+      margin-top: var(--safe-area-top) !important;
+    }
+    
+    /* 모든 화면에서 상태바 영역 확보 */
+    html {
+      padding-top: var(--safe-area-top) !important;
+      margin-top: var(--safe-area-top) !important;
+    }
+    
+    /* 루트 컨테이너 강제 패딩 */
+    #root {
+      padding-top: var(--safe-area-top) !important;
+      margin-top: var(--safe-area-top) !important;
+    }
+    
+    /* 앱 컨테이너 강제 패딩 */
+    .min-h-screen {
+      padding-top: var(--safe-area-top) !important;
+      margin-top: var(--safe-area-top) !important;
+    }
+  }
+
   /* 터치 가능한 요소들에 대해 선택 허용 */
   input, textarea, [contenteditable] {
     -webkit-user-select: text;
