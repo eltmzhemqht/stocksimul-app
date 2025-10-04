@@ -3,21 +3,17 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { memo } from "react";
+import { HoldingsListSkeleton } from "@/components/loading-skeleton";
 import type { HoldingWithStock } from "@shared/schema";
 
-export function HoldingsList() {
+export const HoldingsList = memo(function HoldingsList() {
   const { data: holdings, isLoading } = useQuery<HoldingWithStock[]>({
     queryKey: ["/api/holdings"],
   });
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 bg-muted animate-pulse rounded" />
-        ))}
-      </div>
-    );
+    return <HoldingsListSkeleton />;
   }
 
   if (!holdings || holdings.length === 0) {
@@ -87,4 +83,4 @@ export function HoldingsList() {
       })}
     </div>
   );
-}
+});

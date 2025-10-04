@@ -1,10 +1,23 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { priceUpdater } from "./priceUpdater";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// 세션 미들웨어 설정
+app.use(session({
+  secret: 'stocksimul-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    secure: false, // HTTPS가 아닌 환경에서는 false
+    maxAge: 24 * 60 * 60 * 1000 // 24시간
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -64,8 +77,10 @@ app.use((req, res, next) => {
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // 주가 업데이터 시작
+    priceUpdater.start();
   });
 })();

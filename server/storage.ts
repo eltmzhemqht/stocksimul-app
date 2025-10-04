@@ -141,7 +141,7 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
+    const id = insertUser.id || randomUUID();
     const user: User = { ...insertUser, id, balance: "10000000.00" };
     this.users.set(id, user);
     return user;
@@ -240,6 +240,17 @@ export class MemStorage implements IStorage {
       timestamp: new Date(),
     };
     this.priceHistory.set(id, history);
+    
+    // 메모리 최적화: 각 주식당 최대 100개의 가격 히스토리만 유지
+    const stockHistories = Array.from(this.priceHistory.values())
+      .filter(h => h.stockId === insertHistory.stockId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    if (stockHistories.length > 100) {
+      const toDelete = stockHistories.slice(100);
+      toDelete.forEach(h => this.priceHistory.delete(h.id));
+    }
+    
     return history;
   }
 }

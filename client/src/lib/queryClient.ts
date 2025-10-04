@@ -47,8 +47,17 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 2 * 60 * 1000, // 2분 - 서버 캐시와 동기화
+      gcTime: 5 * 60 * 1000, // 5분 - 가비지 컬렉션 시간
+      retry: (failureCount, error: any) => {
+        // 4xx 에러는 재시도하지 않음
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // 5xx 에러는 최대 2번 재시도
+        return failureCount < 2;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
       retry: false,

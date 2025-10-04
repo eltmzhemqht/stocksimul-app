@@ -1,15 +1,37 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { priceUpdater } from "./priceUpdater";
+import { newsService } from "./newsService";
+import { cache } from "./cache";
 import type { HoldingWithStock, PortfolioStats, TransactionWithStock } from "@shared/schema";
+
+// 간단한 사용자 인증 미들웨어
+function getCurrentUserId(req: any): string {
+  // 세션에서 사용자 ID를 가져오거나, 기본값으로 랜덤 ID 생성
+  if (!req.session?.userId) {
+    req.session = req.session || {};
+    req.session.userId = `user-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  return req.session.userId;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user", async (req, res) => {
     try {
-      const user = await storage.getUser("user-1");
+      const userId = getCurrentUserId(req);
+      let user = await storage.getUser(userId);
+      
+      // 사용자가 없으면 새로 생성
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        user = await storage.createUser({
+          id: userId, // 세션의 userId를 사용
+          username: `user-${userId.slice(-6)}`,
+          password: "demo",
+          balance: "10000000.00"
+        });
       }
+      
       res.json(user);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -18,7 +40,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/stocks", async (req, res) => {
     try {
-      const stocks = await storage.getAllStocks();
+      const cacheKey = "stocks:all";
+      let stocks = cache.get(cacheKey);
+      
+      if (!stocks) {
+        stocks = await storage.getAllStocks();
+        cache.set(cacheKey, stocks, 2 * 60 * 1000); // 2분 캐시
+      }
+      
       res.json(stocks);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -27,10 +56,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/stocks/:id", async (req, res) => {
     try {
-      const stock = await storage.getStock(req.params.id);
+      const cacheKey = `stocks:${req.params.id}`;
+      let stock = cache.get(cacheKey);
+      
       if (!stock) {
-        return res.status(404).json({ message: "Stock not found" });
+        stock = await storage.getStock(req.params.id);
+        if (!stock) {
+          return res.status(404).json({ message: "Stock not found" });
+        }
+        cache.set(cacheKey, stock, 2 * 60 * 1000); // 2분 캐시
       }
+      
       res.json(stock);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -48,28 +84,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/holdings", async (req, res) => {
     try {
-      const holdings = await storage.getHoldings("user-1");
-      const holdingsWithStock: HoldingWithStock[] = await Promise.all(
-        holdings.map(async (holding) => {
-          const stock = await storage.getStock(holding.stockId);
-          if (!stock) {
-            throw new Error("Stock not found");
-          }
-          const currentPrice = Number(stock.currentPrice);
-          const averagePrice = Number(holding.averagePrice);
-          const currentValue = currentPrice * holding.quantity;
-          const profitLoss = (currentPrice - averagePrice) * holding.quantity;
-          const profitLossPercent = ((currentPrice - averagePrice) / averagePrice) * 100;
+      const userId = getCurrentUserId(req);
+      const holdings = await storage.getHoldings(userId);
+      
+      if (holdings.length === 0) {
+        return res.json([]);
+      }
 
-          return {
-            ...holding,
-            stock,
-            currentValue,
-            profitLoss,
-            profitLossPercent,
-          };
-        })
-      );
+      // 모든 주식 정보를 한 번에 가져오기
+      const allStocks = await storage.getAllStocks();
+      const stockMap = new Map(allStocks.map(stock => [stock.id, stock]));
+      
+      const holdingsWithStock: HoldingWithStock[] = holdings.map((holding) => {
+        const stock = stockMap.get(holding.stockId);
+        if (!stock) {
+          throw new Error(`Stock not found: ${holding.stockId}`);
+        }
+        
+        const currentPrice = Number(stock.currentPrice);
+        const averagePrice = Number(holding.averagePrice);
+        const currentValue = currentPrice * holding.quantity;
+        const profitLoss = (currentPrice - averagePrice) * holding.quantity;
+        const profitLossPercent = ((currentPrice - averagePrice) / averagePrice) * 100;
+
+        return {
+          ...holding,
+          stock,
+          currentValue,
+          profitLoss,
+          profitLossPercent,
+        };
+      });
+      
       res.json(holdingsWithStock);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -78,19 +124,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/transactions", async (req, res) => {
     try {
-      const transactions = await storage.getTransactions("user-1");
-      const transactionsWithStock: TransactionWithStock[] = await Promise.all(
-        transactions.map(async (transaction) => {
-          const stock = await storage.getStock(transaction.stockId);
-          if (!stock) {
-            throw new Error("Stock not found");
-          }
-          return {
-            ...transaction,
-            stock,
-          };
-        })
-      );
+      const userId = getCurrentUserId(req);
+      const transactions = await storage.getTransactions(userId);
+      
+      if (transactions.length === 0) {
+        return res.json([]);
+      }
+
+      // 모든 주식 정보를 한 번에 가져오기
+      const allStocks = await storage.getAllStocks();
+      const stockMap = new Map(allStocks.map(stock => [stock.id, stock]));
+      
+      const transactionsWithStock: TransactionWithStock[] = transactions.map((transaction) => {
+        const stock = stockMap.get(transaction.stockId);
+        if (!stock) {
+          throw new Error(`Stock not found: ${transaction.stockId}`);
+        }
+        return {
+          ...transaction,
+          stock,
+        };
+      });
+      
       res.json(transactionsWithStock);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -99,13 +154,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/portfolio/stats", async (req, res) => {
     try {
-      const user = await storage.getUser("user-1");
+      const userId = getCurrentUserId(req);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
       const INITIAL_BALANCE = 10000000;
-      const holdings = await storage.getHoldings("user-1");
+      const holdings = await storage.getHoldings(userId);
       const cashBalance = Number(user.balance);
       
       let holdingsValue = 0;
@@ -141,28 +197,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/portfolio/history", async (req, res) => {
     try {
-      const allHistory = Array.from(storage["priceHistory"].values());
+      const userId = getCurrentUserId(req);
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const INITIAL_BALANCE = 10000000;
+      const transactions = await storage.getTransactions(userId);
       
-      const grouped = allHistory.reduce((acc, item) => {
-        const date = new Date(item.timestamp).toDateString();
+      // 사용자가 거래를 한 적이 없으면 빈 배열 반환
+      if (transactions.length === 0) {
+        res.json([]);
+        return;
+      }
+
+      // 거래 내역을 날짜별로 그룹화
+      const transactionsByDate = transactions.reduce((acc, transaction) => {
+        const date = new Date(transaction.timestamp).toDateString();
         if (!acc[date]) {
           acc[date] = [];
         }
-        acc[date].push(item);
+        acc[date].push(transaction);
         return acc;
-      }, {} as Record<string, typeof allHistory>);
+      }, {} as Record<string, typeof transactions>);
 
-      const portfolioHistory = Object.entries(grouped).map(([date, items]) => {
-        const avgPrice = items.reduce((sum, item) => sum + Number(item.price), 0) / items.length;
-        return {
-          id: items[0].id,
+      // 각 거래 날짜에 대해 포트폴리오 가치 계산
+      const portfolioHistory = [];
+      const sortedDates = Object.keys(transactionsByDate).sort();
+      
+      for (const date of sortedDates) {
+        const dayTransactions = transactionsByDate[date];
+        
+        // 해당 날짜까지의 모든 거래를 고려하여 포트폴리오 가치 계산
+        const holdings = await storage.getHoldings(userId);
+        const cashBalance = Number(user.balance);
+        
+        let holdingsValue = 0;
+        for (const holding of holdings) {
+          const stock = await storage.getStock(holding.stockId);
+          if (stock) {
+            // 해당 날짜의 주가를 찾기 (가장 가까운 과거 가격 사용)
+            const priceHistory = await storage.getPriceHistory(holding.stockId);
+            const targetDate = new Date(date);
+            const closestPrice = priceHistory
+              .filter(h => new Date(h.timestamp) <= targetDate)
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            
+            const currentPrice = closestPrice ? Number(closestPrice.price) : Number(stock.currentPrice);
+            holdingsValue += currentPrice * holding.quantity;
+          }
+        }
+        
+        const totalValue = cashBalance + holdingsValue;
+        
+        portfolioHistory.push({
+          id: `portfolio-${date}`,
           stockId: "portfolio",
-          price: avgPrice.toFixed(2),
+          price: totalValue.toFixed(2),
           timestamp: new Date(date),
-        };
-      });
-
-      portfolioHistory.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        });
+      }
 
       res.json(portfolioHistory);
     } catch (error) {
@@ -182,7 +277,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Quantity must be greater than 0" });
       }
 
-      const user = await storage.getUser("user-1");
+      const userId = getCurrentUserId(req);
+      const user = await storage.getUser(userId);
       const stock = await storage.getStock(stockId);
 
       if (!user || !stock) {
@@ -198,9 +294,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Insufficient balance" });
         }
 
-        await storage.updateUserBalance("user-1", userBalance - totalCost);
+        await storage.updateUserBalance(userId, userBalance - totalCost);
 
-        const existingHolding = await storage.getHolding("user-1", stockId);
+        const existingHolding = await storage.getHolding(userId, stockId);
         if (existingHolding) {
           const newQuantity = existingHolding.quantity + quantity;
           const newAveragePrice =
@@ -208,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.updateHolding(existingHolding.id, newQuantity, newAveragePrice);
         } else {
           await storage.createHolding({
-            userId: "user-1",
+            userId: userId,
             stockId,
             quantity,
             averagePrice: currentPrice.toFixed(2),
@@ -216,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         await storage.createTransaction({
-          userId: "user-1",
+          userId: userId,
           stockId,
           type: "buy",
           quantity,
@@ -226,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json({ message: "Purchase successful" });
       } else if (type === "sell") {
-        const existingHolding = await storage.getHolding("user-1", stockId);
+        const existingHolding = await storage.getHolding(userId, stockId);
         if (!existingHolding) {
           return res.status(400).json({ message: "You don't own this stock" });
         }
@@ -235,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Insufficient shares" });
         }
 
-        await storage.updateUserBalance("user-1", userBalance + totalCost);
+        await storage.updateUserBalance(userId, userBalance + totalCost);
 
         if (existingHolding.quantity === quantity) {
           await storage.deleteHolding(existingHolding.id);
@@ -248,7 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         await storage.createTransaction({
-          userId: "user-1",
+          userId: userId,
           stockId,
           type: "sell",
           quantity,
@@ -263,6 +359,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Trade error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // 수동 주가 업데이트 API (테스트용)
+  app.post("/api/update-prices", async (req, res) => {
+    try {
+      await priceUpdater.updatePricesNow();
+      res.json({ message: "Prices updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update prices" });
+    }
+  });
+
+  // 뉴스 피드 API (전체 뉴스)
+  app.get("/api/news", async (req, res) => {
+    try {
+      const news = await newsService.getLatestNews();
+      res.json(news);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch news" });
+    }
+  });
+
+  // 특정 종목 뉴스 API
+  app.get("/api/news/:symbol", async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const news = await newsService.getLatestNews(symbol);
+      res.json(news);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch news" });
+    }
+  });
+
+  // 특정 종목의 뉴스 영향도 API
+  app.get("/api/news/impact/:symbol", async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const impact = newsService.calculateNewsImpact(symbol);
+      res.json({ symbol, impact, impactPercent: (impact * 100).toFixed(2) });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to calculate news impact" });
     }
   });
 

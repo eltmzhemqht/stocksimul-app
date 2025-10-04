@@ -7,6 +7,7 @@ import { PortfolioChart } from "@/components/portfolio-chart";
 import { HoldingsList } from "@/components/holdings-list";
 import { TransactionsList } from "@/components/transactions-list";
 import { StockCard } from "@/components/stock-card";
+import { NewsFeed } from "@/components/news-feed";
 import { cn } from "@/lib/utils";
 import type { PortfolioStats, Stock } from "@shared/schema";
 
@@ -124,8 +125,10 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid gap-6 lg:grid-cols-4">
+          {/* 좌측 메인 영역 - 3열 */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* 포트폴리오 차트 - 전체 너비 */}
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4" data-testid="text-chart-title">
                 포트폴리오 가치 변동
@@ -133,14 +136,26 @@ export default function Dashboard() {
               <PortfolioChart />
             </Card>
 
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4" data-testid="text-holdings-title">
-                보유 종목
-              </h2>
-              <HoldingsList />
-            </Card>
+            {/* 하단 3열 그리드 */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* 보유 종목 */}
+              <div className="lg:col-span-2">
+                <Card className="p-6 h-full">
+                  <h2 className="text-lg font-semibold mb-4" data-testid="text-holdings-title">
+                    보유 종목
+                  </h2>
+                  <HoldingsList />
+                </Card>
+              </div>
+
+              {/* 뉴스 피드 */}
+              <div className="lg:col-span-1">
+                <NewsFeed limit={4} />
+              </div>
+            </div>
           </div>
 
+          {/* 우측 사이드바 - 1열 */}
           <div className="space-y-6">
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">

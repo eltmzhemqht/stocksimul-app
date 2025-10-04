@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Minus, Plus } from "lucide-react";
-import type { Stock, User } from "@shared/schema";
+import type { Stock, User, HoldingWithStock } from "@shared/schema";
 
 interface TradeModalProps {
   open: boolean;
@@ -29,6 +29,23 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
+
+  const { data: holdings } = useQuery<HoldingWithStock[]>({
+    queryKey: ["/api/holdings"],
+  });
+
+  // 모달이 열릴 때 수량 초기화
+  useEffect(() => {
+    if (open) {
+      if (type === "sell") {
+        const currentHolding = holdings?.find(h => h.stockId === stock.id);
+        const ownedShares = currentHolding?.quantity || 0;
+        setQuantity(Math.min(1, ownedShares));
+      } else {
+        setQuantity(1);
+      }
+    }
+  }, [open, type, stock.id, holdings]);
 
   const tradeMutation = useMutation({
     mutationFn: async (data: { stockId: string; quantity: number; type: string }) => {
@@ -58,7 +75,15 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
   const currentPrice = Number(stock.currentPrice);
   const total = currentPrice * quantity;
   const balance = Number(user?.balance || 0);
+  
+  // 보유 주식 수 확인
+  const currentHolding = holdings?.find(h => h.stockId === stock.id);
+  const ownedShares = currentHolding?.quantity || 0;
+  
+  // 매수/매도 가능 여부 확인
   const canAfford = type === "buy" ? balance >= total : true;
+  const canSell = type === "sell" ? quantity <= ownedShares : true;
+  const isTradeValid = canAfford && canSell;
 
   const handleTrade = () => {
     if (quantity <= 0) {
@@ -116,16 +141,25 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
                 id="quantity"
                 type="number"
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
+                  const maxQuantity = type === "sell" ? ownedShares : Infinity;
+                  setQuantity(Math.min(newQuantity, maxQuantity));
+                }}
                 className="text-center font-mono"
                 min="1"
+                max={type === "sell" ? ownedShares : undefined}
                 data-testid="input-quantity"
               />
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setQuantity(quantity + 1)}
+                onClick={() => {
+                  const maxQuantity = type === "sell" ? ownedShares : Infinity;
+                  setQuantity(Math.min(quantity + 1, maxQuantity));
+                }}
+                disabled={type === "sell" && quantity >= ownedShares}
                 data-testid="button-increase-quantity"
               >
                 <Plus className="w-4 h-4" />
@@ -160,6 +194,14 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
                 </p>
               </div>
             )}
+            {type === "sell" && (
+              <div className="flex justify-between">
+                <p className="text-sm text-muted-foreground">보유 주식</p>
+                <p className={`font-mono text-sm ${canSell ? "" : "text-destructive"}`} data-testid="text-owned-shares">
+                  {ownedShares}주
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">
@@ -174,7 +216,7 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
             <Button
               className="flex-1"
               onClick={handleTrade}
-              disabled={tradeMutation.isPending || !canAfford}
+              disabled={tradeMutation.isPending || !isTradeValid}
               variant={type === "buy" ? "default" : "destructive"}
               data-testid="button-confirm"
             >

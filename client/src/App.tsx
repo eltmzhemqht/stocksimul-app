@@ -3,36 +3,49 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { Navbar } from "@/components/navbar";
-import Dashboard from "@/pages/dashboard";
-import Market from "@/pages/market";
-import StockDetail from "@/pages/stock-detail";
-import Transactions from "@/pages/transactions";
-import NotFound from "@/pages/not-found";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/loading-skeleton";
+import { 
+  LazyDashboard, 
+  LazyMarket, 
+  LazyNews, 
+  LazyStockDetail, 
+  LazyTransactions, 
+  LazyNotFound 
+} from "@/components/lazy-components";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/market" component={Market} />
-      <Route path="/stocks/:id" component={StockDetail} />
-      <Route path="/transactions" component={Transactions} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<Skeleton className="h-screen w-full" />}>
+      <Switch>
+        <Route path="/" component={LazyDashboard} />
+        <Route path="/market" component={LazyMarket} />
+        <Route path="/news" component={LazyNews} />
+        <Route path="/stocks/:id" component={LazyStockDetail} />
+        <Route path="/transactions" component={LazyTransactions} />
+        <Route component={LazyNotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          <Router />
-        </div>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <div className="min-h-screen bg-background">
+            <Navbar />
+            <ErrorBoundary>
+              <Router />
+            </ErrorBoundary>
+          </div>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

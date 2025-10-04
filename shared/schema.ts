@@ -45,9 +45,10 @@ export const priceHistory = pgTable("price_history", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  id: true,
   username: true,
   password: true,
-});
+}).partial({ id: true });
 
 export const insertStockSchema = createInsertSchema(stocks).omit({
   id: true,

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, TrendingUp, History, Wallet } from "lucide-react";
+import { LayoutDashboard, TrendingUp, History, Wallet, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schema";
 
@@ -16,6 +16,7 @@ export function Navbar() {
   const navItems = [
     { path: "/", label: "대시보드", icon: LayoutDashboard },
     { path: "/market", label: "시장", icon: TrendingUp },
+    { path: "/news", label: "뉴스", icon: Newspaper },
     { path: "/transactions", label: "거래내역", icon: History },
   ];
 
