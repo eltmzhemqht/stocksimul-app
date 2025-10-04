@@ -59,7 +59,7 @@ export default function StockDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-4 space-y-4">
         <Link href="/market">
           <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back">
             <ArrowLeft className="w-4 h-4" />
