@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent overscroll */
+html, body {
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+#root {
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
 /* LIGHT MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);
