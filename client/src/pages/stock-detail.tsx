@@ -67,54 +67,56 @@ export default function StockDetail() {
           </Button>
         </Link>
 
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-4">
+          {/* 종목명과 심볼 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight" data-testid="text-stock-name">
+              {stock.name}
+            </h1>
+            <Badge variant="outline" className="font-mono text-sm" data-testid="badge-stock-symbol">
+              {stock.symbol}
+            </Badge>
+          </div>
+
+          {/* 현재가와 변동 정보 */}
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight" data-testid="text-stock-name">
-                {stock.name}
-              </h1>
-              <Badge variant="outline" className="font-mono" data-testid="badge-stock-symbol">
-                {stock.symbol}
+            <p className="text-3xl font-bold font-mono tracking-tight" data-testid="text-stock-price">
+              ₩{currentPrice.toLocaleString()}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant={isPositive ? "default" : "destructive"}
+                className={cn(
+                  "font-mono text-sm gap-1",
+                  isPositive ? "bg-profit text-profit-foreground" : "bg-loss text-loss-foreground"
+                )}
+                data-testid="badge-price-change"
+              >
+                {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                {isPositive ? "+" : ""}
+                {changePercent.toFixed(2)}%
               </Badge>
-            </div>
-            <div className="flex items-baseline gap-3">
-              <p className="text-4xl font-bold font-mono tracking-tight" data-testid="text-stock-price">
-                ₩{currentPrice.toLocaleString()}
+              <p className={cn("text-sm font-mono", isPositive ? "text-profit" : "text-loss")}>
+                {isPositive ? "+" : ""}₩{change.toLocaleString()}
               </p>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={isPositive ? "default" : "destructive"}
-                  className={cn(
-                    "font-mono text-sm gap-1",
-                    isPositive ? "bg-profit text-profit-foreground" : "bg-loss text-loss-foreground"
-                  )}
-                  data-testid="badge-price-change"
-                >
-                  {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {isPositive ? "+" : ""}
-                  {changePercent.toFixed(2)}%
-                </Badge>
-                <p className={cn("text-lg font-mono", isPositive ? "text-profit" : "text-loss")}>
-                  {isPositive ? "+" : ""}₩{change.toLocaleString()}
-                </p>
-              </div>
             </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* 매수/매도 버튼 */}
+          <div className="flex gap-2">
             <Button
-              size="lg"
+              size="sm"
               onClick={() => handleTrade("buy")}
-              className="gap-2"
+              className="flex-1"
               data-testid="button-buy"
             >
               매수
             </Button>
             <Button
-              size="lg"
+              size="sm"
               variant="destructive"
               onClick={() => handleTrade("sell")}
-              className="gap-2"
+              className="flex-1"
               data-testid="button-sell"
             >
               매도
