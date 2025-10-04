@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
-    url: 'http://121.143.241.73:5000',
+    url: 'https://nugu-stocksimul-app.vercel.app',
     cleartext: true
   },
   plugins: {
