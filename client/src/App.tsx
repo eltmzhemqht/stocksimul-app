@@ -52,11 +52,13 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 48px)' }}>
+          <div className="min-h-screen bg-background">
             <Navbar />
-            <ErrorBoundary>
-              <Router />
-            </ErrorBoundary>
+            <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 48px) + 64px)' }}>
+              <ErrorBoundary>
+                <Router />
+              </ErrorBoundary>
+            </div>
           </div>
           <Toaster />
         </TooltipProvider>
