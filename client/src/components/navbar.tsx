@@ -70,7 +70,7 @@ export function Navbar() {
           </div>
         </div>
 
-        <div className="md:hidden flex items-center gap-1 pb-2 overflow-x-auto">
+        <div className="md:hidden flex items-center justify-between pb-2 px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
@@ -79,11 +79,11 @@ export function Navbar() {
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
                   size="sm"
-                  className={cn("gap-2 whitespace-nowrap", isActive && "bg-muted")}
+                  className={cn("gap-1 flex-1 min-w-0", isActive && "bg-muted")}
                   data-testid={`link-nav-mobile-${item.label}`}
                 >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs truncate">{item.label}</span>
                 </Button>
               </Link>
             );

@@ -54,10 +54,11 @@ export function StockChart({ stockId }: StockChartProps) {
         />
         <YAxis
           stroke="hsl(var(--muted-foreground))"
-          fontSize={12}
+          fontSize={10}
           tickLine={false}
           domain={[minPrice * 0.99, maxPrice * 1.01]}
-          tickFormatter={(value) => `₩${value.toLocaleString()}`}
+          tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+          width={40}
         />
         <Tooltip
           contentStyle={{

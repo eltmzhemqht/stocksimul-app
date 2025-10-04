@@ -114,12 +114,12 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="w-[90vw] max-w-sm mx-auto p-4" 
+        className="w-[95vw] max-w-sm mx-auto p-3" 
         style={{ 
-          maxWidth: '90vw',
-          width: '90vw',
+          maxWidth: '95vw',
+          width: '95vw',
           margin: '0 auto',
-          padding: '16px'
+          padding: '12px'
         }}
         data-testid="modal-trade"
       >
