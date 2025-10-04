@@ -52,10 +52,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <div className="min-h-screen bg-background">
-            <div style={{ height: '120px', backgroundColor: '#FF0000', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold' }}>
-              상태바 영역 테스트 - 120px
-            </div>
+          <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top, 48px)' }}>
             <Navbar />
             <ErrorBoundary>
               <Router />
