@@ -214,30 +214,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const INITIAL_BALANCE = 10000000;
       const transactions = await storage.getTransactions(userId);
       
-      // 사용자가 거래를 한 적이 없으면 빈 배열 반환
+      // 포트폴리오 히스토리 생성
+      const portfolioHistory = [];
+      
+      // 거래가 없는 경우 오늘 날짜로 초기 가치 반환
       if (transactions.length === 0) {
-        res.json([]);
+        const today = new Date();
+        portfolioHistory.push({
+          id: `portfolio-${today.getTime()}`,
+          stockId: "portfolio",
+          price: INITIAL_BALANCE.toFixed(2),
+          timestamp: today,
+        });
+        
+        res.json(portfolioHistory);
         return;
       }
 
-      // 거래 내역을 날짜별로 그룹화
-      const transactionsByDate = transactions.reduce((acc, transaction) => {
-        const date = new Date(transaction.timestamp);
-        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        if (!acc[dateKey]) {
-          acc[dateKey] = [];
-        }
-        acc[dateKey].push(transaction);
-        return acc;
-      }, {} as Record<string, typeof transactions>);
-
-      // 각 거래 날짜에 대해 포트폴리오 가치 계산
-      const portfolioHistory = [];
-      const sortedDates = Object.keys(transactionsByDate).sort();
+      // 거래 날짜들을 수집하고 정렬
+      const transactionDates = transactions.map(t => new Date(t.createdAt)).sort((a, b) => a.getTime() - b.getTime());
       
-      for (const date of sortedDates) {
-        const dayTransactions = transactionsByDate[date];
-        
+      // 오늘 날짜도 추가 (거래가 있다면)
+      const today = new Date();
+      if (transactionDates.length === 0 || transactionDates[transactionDates.length - 1].toDateString() !== today.toDateString()) {
+        transactionDates.push(today);
+      }
+
+      // 각 날짜에 대해 포트폴리오 가치 계산
+      for (const date of transactionDates) {
         // 해당 날짜까지의 모든 거래를 고려하여 포트폴리오 가치 계산
         const holdings = await storage.getHoldings(userId);
         const cashBalance = Number(user.balance);
@@ -246,12 +250,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const holding of holdings) {
           const stock = await storage.getStock(holding.stockId);
           if (stock) {
-        // 해당 날짜의 주가를 찾기 (가장 가까운 과거 가격 사용)
-        const priceHistory = await storage.getPriceHistory(holding.stockId);
-        const targetDate = new Date(date + 'T00:00:00.000Z'); // ISO 형식으로 파싱
-        const closestPrice = priceHistory
-          .filter(h => new Date(h.timestamp) <= targetDate)
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            // 해당 날짜의 주가를 찾기 (가장 가까운 과거 가격 사용)
+            const priceHistory = await storage.getPriceHistory(holding.stockId);
+            const closestPrice = priceHistory
+              .filter(h => new Date(h.timestamp) <= date)
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
             
             const currentPrice = closestPrice ? Number(closestPrice.price) : Number(stock.currentPrice);
             holdingsValue += currentPrice * holding.quantity;
@@ -261,15 +264,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const totalValue = cashBalance + holdingsValue;
         
         portfolioHistory.push({
-          id: `portfolio-${date}`,
+          id: `portfolio-${date.getTime()}`,
           stockId: "portfolio",
           price: totalValue.toFixed(2),
-          timestamp: new Date(date + 'T00:00:00.000Z'),
+          timestamp: date,
         });
       }
 
       res.json(portfolioHistory);
     } catch (error) {
+      console.error('Portfolio history error:', error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
