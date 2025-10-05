@@ -64,7 +64,8 @@ function App() {
               height: 'calc(100vh - env(safe-area-inset-top, 48px) - 64px)', 
               overflowY: 'auto',
               overscrollBehavior: 'contain',
-              WebkitOverflowScrolling: 'touch'
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: '20px'
             }}>
               <ErrorBoundary>
                 <Router />

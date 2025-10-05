@@ -25,17 +25,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-2 space-y-3">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-1 space-y-2">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
             포트폴리오
           </h1>
-          <p className="text-muted-foreground" data-testid="text-page-subtitle">
+          <p className="text-sm text-muted-foreground" data-testid="text-page-subtitle">
             실시간 자산 현황과 거래 내역을 확인하세요
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">총 자산</p>
@@ -125,9 +125,9 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-4">
+        <div className="grid gap-4 lg:grid-cols-4">
           {/* 좌측 메인 영역 - 3열 */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-4">
             {/* 포트폴리오 차트 - 전체 너비 */}
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4" data-testid="text-chart-title">
@@ -137,7 +137,7 @@ export default function Dashboard() {
             </Card>
 
             {/* 하단 3열 그리드 */}
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-4 lg:grid-cols-3">
               {/* 보유 종목 */}
               <div className="lg:col-span-2">
                 <Card className="p-6 h-full">
@@ -156,7 +156,7 @@ export default function Dashboard() {
           </div>
 
           {/* 우측 사이드바 - 1열 */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold" data-testid="text-market-title">
