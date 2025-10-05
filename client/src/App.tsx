@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, getQueryFn } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { Navbar } from "@/components/navbar";
 import { Suspense, useEffect } from "react";
 import { Skeleton } from "@/components/loading-skeleton";
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { useUserId } from "./hooks/use-user-id";
 import { 
   LazyDashboard, 
   LazyMarket, 
@@ -33,6 +34,8 @@ function Router() {
 }
 
 function App() {
+  const userId = useUserId();
+
   useEffect(() => {
     // StatusBar 설정
     const setupStatusBar = async () => {
@@ -68,6 +71,17 @@ function App() {
     setTimeout(resetScrollPosition, 500);
     setTimeout(resetScrollPosition, 1000);
   }, []);
+
+  // 사용자 ID가 로드되면 쿼리 클라이언트 설정 업데이트
+  useEffect(() => {
+    if (userId) {
+      queryClient.setDefaultOptions({
+        queries: {
+          queryFn: getQueryFn({ on401: "throw", userId }),
+        },
+      });
+    }
+  }, [userId]);
 
   return (
     <ErrorBoundary>

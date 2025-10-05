@@ -8,6 +8,14 @@ import type { HoldingWithStock, PortfolioStats, TransactionWithStock } from "@sh
 
 // 간단한 사용자 인증 미들웨어
 function getCurrentUserId(req: any): string {
+  // 클라이언트에서 전달된 userId 헤더를 우선 사용
+  const clientUserId = req.headers['x-user-id'] as string;
+  if (clientUserId) {
+    req.session = req.session || {};
+    req.session.userId = clientUserId;
+    return clientUserId;
+  }
+  
   // 세션에서 사용자 ID를 가져오거나, 기본값으로 랜덤 ID 생성
   if (!req.session?.userId) {
     req.session = req.session || {};
@@ -214,11 +222,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 거래 내역을 날짜별로 그룹화
       const transactionsByDate = transactions.reduce((acc, transaction) => {
-        const date = new Date(transaction.timestamp).toDateString();
-        if (!acc[date]) {
-          acc[date] = [];
+        const date = new Date(transaction.timestamp);
+        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        if (!acc[dateKey]) {
+          acc[dateKey] = [];
         }
-        acc[date].push(transaction);
+        acc[dateKey].push(transaction);
         return acc;
       }, {} as Record<string, typeof transactions>);
 
@@ -237,12 +246,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const holding of holdings) {
           const stock = await storage.getStock(holding.stockId);
           if (stock) {
-            // 해당 날짜의 주가를 찾기 (가장 가까운 과거 가격 사용)
-            const priceHistory = await storage.getPriceHistory(holding.stockId);
-            const targetDate = new Date(date);
-            const closestPrice = priceHistory
-              .filter(h => new Date(h.timestamp) <= targetDate)
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+        // 해당 날짜의 주가를 찾기 (가장 가까운 과거 가격 사용)
+        const priceHistory = await storage.getPriceHistory(holding.stockId);
+        const targetDate = new Date(date + 'T00:00:00.000Z'); // ISO 형식으로 파싱
+        const closestPrice = priceHistory
+          .filter(h => new Date(h.timestamp) <= targetDate)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
             
             const currentPrice = closestPrice ? Number(closestPrice.price) : Number(stock.currentPrice);
             holdingsValue += currentPrice * holding.quantity;
@@ -255,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: `portfolio-${date}`,
           stockId: "portfolio",
           price: totalValue.toFixed(2),
-          timestamp: new Date(date),
+          timestamp: new Date(date + 'T00:00:00.000Z'),
         });
       }
 

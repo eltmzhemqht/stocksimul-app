@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useUserId } from "@/hooks/use-user-id";
 import { Minus, Plus } from "lucide-react";
 import type { Stock, User, HoldingWithStock } from "@shared/schema";
 
@@ -25,6 +26,7 @@ interface TradeModalProps {
 export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps) {
   const [quantity, setQuantity] = useState(1);
   const { toast } = useToast();
+  const userId = useUserId();
 
   const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
@@ -49,7 +51,7 @@ export function TradeModal({ open, onOpenChange, stock, type }: TradeModalProps)
 
   const tradeMutation = useMutation({
     mutationFn: async (data: { stockId: string; quantity: number; type: string }) => {
-      return apiRequest("POST", "/api/trade", data);
+      return apiRequest("POST", "/api/trade", data, userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });

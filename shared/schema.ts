@@ -44,6 +44,16 @@ export const priceHistory = pgTable("price_history", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
+export const news = pgTable("news", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  summary: text("summary").notNull(),
+  sentiment: text("sentiment").notNull(),
+  impact: decimal("impact", { precision: 3, scale: 2 }).notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  symbols: text("symbols").notNull(), // JSON 배열을 문자열로 저장
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   id: true,
   username: true,
@@ -68,6 +78,11 @@ export const insertPriceHistorySchema = createInsertSchema(priceHistory).omit({
   timestamp: true,
 });
 
+export const insertNewsSchema = createInsertSchema(news).omit({
+  id: true,
+  timestamp: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -82,6 +97,9 @@ export type Transaction = typeof transactions.$inferSelect;
 
 export type InsertPriceHistory = z.infer<typeof insertPriceHistorySchema>;
 export type PriceHistory = typeof priceHistory.$inferSelect;
+
+export type InsertNews = z.infer<typeof insertNewsSchema>;
+export type News = typeof news.$inferSelect;
 
 export interface PortfolioStats {
   totalValue: number;

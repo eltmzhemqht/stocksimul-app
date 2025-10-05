@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { priceUpdater } from "./priceUpdater";
@@ -9,13 +10,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // 세션 미들웨어 설정
+const sessionStore = new (MemoryStore(session))({
+  checkPeriod: 86400000, // 24시간마다 만료된 세션 정리
+});
+
 app.use(session({
+  store: sessionStore,
   secret: 'stocksimul-secret-key',
   resave: false,
   saveUninitialized: true,
   cookie: { 
     secure: false, // HTTPS가 아닌 환경에서는 false
-    maxAge: 24 * 60 * 60 * 1000 // 24시간
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7일로 연장
   }
 }));
 
