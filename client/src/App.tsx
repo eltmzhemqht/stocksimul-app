@@ -49,16 +49,24 @@ function App() {
 
     // 초기 스크롤 위치를 맨 위로 설정
     const resetScrollPosition = () => {
-      const contentDiv = document.querySelector('[style*="overflowY: auto"]') as HTMLElement;
-      if (contentDiv) {
-        contentDiv.scrollTop = 0;
-      }
+      // 모든 스크롤 가능한 요소 찾기
+      const scrollableElements = document.querySelectorAll('[style*="overflowY: auto"], [style*="overflow-y: auto"], .overflow-y-auto');
+      scrollableElements.forEach((element) => {
+        (element as HTMLElement).scrollTop = 0;
+      });
+      
+      // 윈도우 스크롤 리셋
       window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     };
 
-    // DOM이 로드된 후 스크롤 위치 리셋
+    // DOM이 로드된 후 스크롤 위치 리셋 (더 자주 실행)
+    setTimeout(resetScrollPosition, 50);
     setTimeout(resetScrollPosition, 100);
+    setTimeout(resetScrollPosition, 200);
     setTimeout(resetScrollPosition, 500);
+    setTimeout(resetScrollPosition, 1000);
   }, []);
 
   return (

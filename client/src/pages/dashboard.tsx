@@ -25,12 +25,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-1 space-y-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-0 space-y-1">
+        <div className="space-y-0">
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-page-title">
             포트폴리오
           </h1>
-          <p className="text-sm text-muted-foreground" data-testid="text-page-subtitle">
+          <p className="text-xs text-muted-foreground" data-testid="text-page-subtitle">
             실시간 자산 현황과 거래 내역을 확인하세요
           </p>
         </div>

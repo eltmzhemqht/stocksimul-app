@@ -25,11 +25,26 @@ html, body {
 /* 초기 스크롤 위치 강제 설정 */
 html, body {
   scroll-behavior: auto !important;
+  scroll-top: 0 !important;
+  scroll-left: 0 !important;
 }
 
 /* 앱 시작 시 스크롤 위치 리셋 */
 #root {
   scroll-behavior: auto !important;
+  scroll-top: 0 !important;
+  scroll-left: 0 !important;
+}
+
+/* 모든 스크롤 가능한 요소 초기화 */
+* {
+  scroll-behavior: auto !important;
+}
+
+/* 강제 스크롤 위치 리셋 */
+html, body, #root, .min-h-screen {
+  scroll-top: 0 !important;
+  scroll-left: 0 !important;
 }
 
 /* LIGHT MODE */
