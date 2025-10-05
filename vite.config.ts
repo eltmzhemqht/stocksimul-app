@@ -28,6 +28,8 @@ export default defineConfig({
           'chart-vendor': ['recharts'],
           // React Query를 별도 청크로 분리
           'query-vendor': ['@tanstack/react-query'],
+          // 라우팅 라이브러리
+          'router-vendor': ['wouter'],
         },
       },
     },
@@ -35,6 +37,12 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     // 압축 최적화
     minify: 'esbuild',
+    // 소스맵 비활성화 (프로덕션에서)
+    sourcemap: false,
+    // CSS 코드 분할
+    cssCodeSplit: true,
+    // 에셋 인라인 임계값
+    assetsInlineLimit: 4096,
   },
   server: {
     fs: {

@@ -295,8 +295,12 @@ export class MemStorage implements IStorage {
     this.priceHistory = new Map();
     this.dataDir = join(process.cwd(), 'data');
 
-    // 비동기 초기화를 즉시 실행
-    this.initializeData().catch(console.error);
+    // 비동기 초기화를 즉시 실행 (에러 처리 개선)
+    this.initializeData().catch((error) => {
+      console.error('Storage initialization failed:', error);
+      // 초기화 실패 시에도 기본 데이터로 계속 진행
+      this.initializeMockData();
+    });
   }
 
   private async initializeData() {

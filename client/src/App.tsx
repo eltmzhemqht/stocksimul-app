@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Navbar } from "@/components/navbar";
 import { Suspense, useEffect } from "react";
-import { Skeleton } from "@/components/loading-skeleton";
+import { Skeleton, AppLoadingSkeleton } from "@/components/loading-skeleton";
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { useUserId } from "./hooks/use-user-id";
 import { 
@@ -20,7 +20,7 @@ import {
 
 function Router() {
   return (
-    <Suspense fallback={<Skeleton className="h-screen w-full" />}>
+    <Suspense fallback={<AppLoadingSkeleton />}>
       <Switch>
         <Route path="/" component={LazyDashboard} />
         <Route path="/market" component={LazyMarket} />
@@ -50,26 +50,14 @@ function App() {
     
     setupStatusBar();
 
-    // 초기 스크롤 위치를 맨 위로 설정
+    // 초기 스크롤 위치를 맨 위로 설정 (최적화)
     const resetScrollPosition = () => {
-      // 모든 스크롤 가능한 요소 찾기
-      const scrollableElements = document.querySelectorAll('[style*="overflowY: auto"], [style*="overflow-y: auto"], .overflow-y-auto');
-      scrollableElements.forEach((element) => {
-        (element as HTMLElement).scrollTop = 0;
-      });
-      
-      // 윈도우 스크롤 리셋
+      // 윈도우 스크롤만 리셋 (성능 최적화)
       window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
     };
 
-    // DOM이 로드된 후 스크롤 위치 리셋 (더 자주 실행)
-    setTimeout(resetScrollPosition, 50);
+    // DOM이 로드된 후 스크롤 위치 리셋 (1번만 실행)
     setTimeout(resetScrollPosition, 100);
-    setTimeout(resetScrollPosition, 200);
-    setTimeout(resetScrollPosition, 500);
-    setTimeout(resetScrollPosition, 1000);
   }, []);
 
   // 사용자 ID가 로드되면 쿼리 클라이언트 설정 업데이트

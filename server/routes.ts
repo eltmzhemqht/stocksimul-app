@@ -53,9 +53,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!stocks) {
         stocks = await storage.getAllStocks();
-        cache.set(cacheKey, stocks, 2 * 60 * 1000); // 2분 캐시
+        cache.set(cacheKey, stocks, 5 * 60 * 1000); // 5분 캐시 (주식 데이터는 자주 변하지 않음)
       }
       
+      // 압축 헤더 추가
+      res.setHeader('Cache-Control', 'public, max-age=300'); // 5분 브라우저 캐시
       res.json(stocks);
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });

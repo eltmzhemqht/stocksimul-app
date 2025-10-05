@@ -110,3 +110,70 @@ export function ChartSkeleton() {
     </Card>
   );
 }
+
+export function AppLoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* 상태바 영역 */}
+      <div 
+        className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        style={{ height: 'env(safe-area-inset-top, 24px)' }}
+      />
+      
+      {/* 네비게이션 바 스켈레톤 */}
+      <div className="fixed top-0 left-0 right-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="flex items-center justify-between p-4 pt-8">
+          <Skeleton className="h-6 w-24" />
+          <div className="flex space-x-2">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+        </div>
+      </div>
+
+      {/* 메인 콘텐츠 스켈레톤 */}
+      <div className="pt-20 pb-4 px-4 space-y-6">
+        {/* 대시보드 스켈레톤 */}
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-32" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card className="p-6">
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </Card>
+            <Card className="p-6">
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </Card>
+            <Card className="p-6">
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* 차트 스켈레톤 */}
+        <ChartSkeleton />
+
+        {/* 주식 목록 스켈레톤 */}
+        <div className="space-y-4">
+          <Skeleton className="h-6 w-24" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StockCardSkeleton />
+            <StockCardSkeleton />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
