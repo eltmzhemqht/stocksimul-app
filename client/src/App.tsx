@@ -46,6 +46,19 @@ function App() {
     };
     
     setupStatusBar();
+
+    // 초기 스크롤 위치를 맨 위로 설정
+    const resetScrollPosition = () => {
+      const contentDiv = document.querySelector('[style*="overflowY: auto"]') as HTMLElement;
+      if (contentDiv) {
+        contentDiv.scrollTop = 0;
+      }
+      window.scrollTo(0, 0);
+    };
+
+    // DOM이 로드된 후 스크롤 위치 리셋
+    setTimeout(resetScrollPosition, 100);
+    setTimeout(resetScrollPosition, 500);
   }, []);
 
   return (

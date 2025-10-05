@@ -22,6 +22,16 @@ html, body {
   overscroll-behavior: contain;
 }
 
+/* 초기 스크롤 위치 강제 설정 */
+html, body {
+  scroll-behavior: auto !important;
+}
+
+/* 앱 시작 시 스크롤 위치 리셋 */
+#root {
+  scroll-behavior: auto !important;
+}
+
 /* LIGHT MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);
