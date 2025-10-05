@@ -22,6 +22,8 @@ import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { neon } from "@neondatabase/serverless";
 import { eq, and, desc } from "drizzle-orm";
+import { promises as fs } from "fs";
+import { join } from "path";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -282,6 +284,8 @@ export class MemStorage implements IStorage {
   private holdings: Map<string, Holding>;
   private transactions: Map<string, Transaction>;
   private priceHistory: Map<string, PriceHistory>;
+  private dataDir: string;
+  private initialized: boolean = false;
 
   constructor() {
     this.users = new Map();
@@ -289,8 +293,103 @@ export class MemStorage implements IStorage {
     this.holdings = new Map();
     this.transactions = new Map();
     this.priceHistory = new Map();
+    this.dataDir = join(process.cwd(), 'data');
 
-    this.initializeMockData();
+    // 비동기 초기화를 즉시 실행
+    this.initializeData().catch(console.error);
+  }
+
+  private async initializeData() {
+    if (this.initialized) return;
+    
+    // 데이터 디렉토리 생성
+    try {
+      await fs.mkdir(this.dataDir, { recursive: true });
+    } catch (error) {
+      console.log('Data directory already exists or creation failed:', error);
+    }
+
+    // 저장된 데이터 로드 시도
+    await this.loadData();
+    
+    // 데이터가 없으면 초기 데이터 생성
+    if (this.users.size === 0) {
+      this.initializeMockData();
+      await this.saveData();
+    }
+    
+    this.initialized = true;
+  }
+
+  private async ensureInitialized() {
+    if (!this.initialized) {
+      await this.initializeData();
+    }
+  }
+
+  private async loadData() {
+    try {
+      const dataFiles = {
+        users: join(this.dataDir, 'users.json'),
+        stocks: join(this.dataDir, 'stocks.json'),
+        holdings: join(this.dataDir, 'holdings.json'),
+        transactions: join(this.dataDir, 'transactions.json'),
+        priceHistory: join(this.dataDir, 'priceHistory.json'),
+      };
+
+      // 각 데이터 파일 로드
+      for (const [key, filePath] of Object.entries(dataFiles)) {
+        try {
+          const data = await fs.readFile(filePath, 'utf-8');
+          const parsedData = JSON.parse(data);
+          
+          switch (key) {
+            case 'users':
+              this.users = new Map(Object.entries(parsedData));
+              break;
+            case 'stocks':
+              this.stocks = new Map(Object.entries(parsedData));
+              break;
+            case 'holdings':
+              this.holdings = new Map(Object.entries(parsedData));
+              break;
+            case 'transactions':
+              this.transactions = new Map(Object.entries(parsedData));
+              break;
+            case 'priceHistory':
+              this.priceHistory = new Map(Object.entries(parsedData));
+              break;
+          }
+        } catch (error) {
+          console.log(`Failed to load ${key} data:`, error);
+        }
+      }
+    } catch (error) {
+      console.log('Failed to load data:', error);
+    }
+  }
+
+  private async saveData() {
+    try {
+      const dataFiles = {
+        users: join(this.dataDir, 'users.json'),
+        stocks: join(this.dataDir, 'stocks.json'),
+        holdings: join(this.dataDir, 'holdings.json'),
+        transactions: join(this.dataDir, 'transactions.json'),
+        priceHistory: join(this.dataDir, 'priceHistory.json'),
+      };
+
+      // 각 데이터 파일 저장
+      await Promise.all([
+        fs.writeFile(dataFiles.users, JSON.stringify(Object.fromEntries(this.users))),
+        fs.writeFile(dataFiles.stocks, JSON.stringify(Object.fromEntries(this.stocks))),
+        fs.writeFile(dataFiles.holdings, JSON.stringify(Object.fromEntries(this.holdings))),
+        fs.writeFile(dataFiles.transactions, JSON.stringify(Object.fromEntries(this.transactions))),
+        fs.writeFile(dataFiles.priceHistory, JSON.stringify(Object.fromEntries(this.priceHistory))),
+      ]);
+    } catch (error) {
+      console.log('Failed to save data:', error);
+    }
   }
 
   private initializeMockData() {
@@ -370,93 +469,116 @@ export class MemStorage implements IStorage {
   }
 
   async getUser(id: string): Promise<User | undefined> {
+    await this.ensureInitialized();
     return this.users.get(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    await this.ensureInitialized();
     return Array.from(this.users.values()).find((user) => user.username === username);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    await this.ensureInitialized();
     const id = insertUser.id || randomUUID();
     const user: User = { ...insertUser, id, balance: "10000000.00" };
     this.users.set(id, user);
+    await this.saveData();
     return user;
   }
 
   async updateUserBalance(userId: string, balance: number): Promise<void> {
+    await this.ensureInitialized();
     const user = this.users.get(userId);
     if (user) {
       user.balance = balance.toFixed(2);
       this.users.set(userId, user);
+      await this.saveData();
     }
   }
 
   async getAllStocks(): Promise<Stock[]> {
+    await this.ensureInitialized();
     return Array.from(this.stocks.values());
   }
 
   async getStock(id: string): Promise<Stock | undefined> {
+    await this.ensureInitialized();
     return this.stocks.get(id);
   }
 
   async getStockBySymbol(symbol: string): Promise<Stock | undefined> {
+    await this.ensureInitialized();
     return Array.from(this.stocks.values()).find(stock => stock.symbol === symbol);
   }
 
   async createStock(insertStock: InsertStock): Promise<Stock> {
+    await this.ensureInitialized();
     const id = randomUUID();
     const stock: Stock = { id, ...insertStock };
     this.stocks.set(id, stock);
+    await this.saveData();
     return stock;
   }
 
   async updateStockPrice(id: string, currentPrice: number, previousClose: number): Promise<void> {
+    await this.ensureInitialized();
     const stock = this.stocks.get(id);
     if (stock) {
       stock.currentPrice = currentPrice.toFixed(2);
       stock.previousClose = previousClose.toFixed(2);
       this.stocks.set(id, stock);
+      await this.saveData();
     }
   }
 
   async getHoldings(userId: string): Promise<Holding[]> {
+    await this.ensureInitialized();
     return Array.from(this.holdings.values()).filter((h) => h.userId === userId);
   }
 
   async getHolding(userId: string, stockId: string): Promise<Holding | undefined> {
+    await this.ensureInitialized();
     return Array.from(this.holdings.values()).find(
       (h) => h.userId === userId && h.stockId === stockId
     );
   }
 
   async createHolding(insertHolding: InsertHolding): Promise<Holding> {
+    await this.ensureInitialized();
     const id = randomUUID();
     const holding: Holding = { id, ...insertHolding };
     this.holdings.set(id, holding);
+    await this.saveData();
     return holding;
   }
 
   async updateHolding(id: string, quantity: number, averagePrice: number): Promise<void> {
+    await this.ensureInitialized();
     const holding = this.holdings.get(id);
     if (holding) {
       holding.quantity = quantity;
       holding.averagePrice = averagePrice.toFixed(2);
       this.holdings.set(id, holding);
+      await this.saveData();
     }
   }
 
   async deleteHolding(id: string): Promise<void> {
+    await this.ensureInitialized();
     this.holdings.delete(id);
+    await this.saveData();
   }
 
   async getTransactions(userId: string): Promise<Transaction[]> {
+    await this.ensureInitialized();
     return Array.from(this.transactions.values())
       .filter((t) => t.userId === userId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
+    await this.ensureInitialized();
     const id = randomUUID();
     const transaction: Transaction = {
       id,
@@ -464,16 +586,19 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.transactions.set(id, transaction);
+    await this.saveData();
     return transaction;
   }
 
   async getPriceHistory(stockId: string): Promise<PriceHistory[]> {
+    await this.ensureInitialized();
     return Array.from(this.priceHistory.values())
       .filter((h) => h.stockId === stockId)
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 
   async createPriceHistory(insertHistory: InsertPriceHistory): Promise<PriceHistory> {
+    await this.ensureInitialized();
     const id = randomUUID();
     const history: PriceHistory = {
       id,
@@ -492,6 +617,7 @@ export class MemStorage implements IStorage {
       toDelete.forEach(h => this.priceHistory.delete(h.id));
     }
     
+    await this.saveData();
     return history;
   }
 }
