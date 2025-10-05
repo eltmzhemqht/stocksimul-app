@@ -59,7 +59,13 @@ function App() {
               style={{ height: 'env(safe-area-inset-top, 48px)' }}
             />
             <Navbar />
-            <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 48px) + 64px)', height: 'calc(100vh - env(safe-area-inset-top, 48px) - 64px)', overflowY: 'auto' }}>
+            <div style={{ 
+              paddingTop: 'calc(env(safe-area-inset-top, 48px) + 64px)', 
+              height: 'calc(100vh - env(safe-area-inset-top, 48px) - 64px)', 
+              overflowY: 'auto',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch'
+            }}>
               <ErrorBoundary>
                 <Router />
               </ErrorBoundary>

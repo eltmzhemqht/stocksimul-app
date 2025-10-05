@@ -2,15 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent overscroll */
+/* Prevent overscroll and fix scroll restoration */
 html, body {
   overflow-x: hidden;
   overscroll-behavior: none;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 #root {
   overflow-x: hidden;
   overscroll-behavior: none;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix scroll restoration on mobile */
+* {
+  overscroll-behavior: contain;
 }
 
 /* LIGHT MODE */
