@@ -75,73 +75,26 @@ if (app.get("env") === "development") {
   serveStatic(app);
 }
 
-// Netlify 서버리스 함수로 export
-export const handler = async (event, context) => {
-  // Netlify의 event/context를 Express req/res로 변환
-  const req = {
-    method: event.httpMethod,
-    url: event.path,
-    headers: event.headers,
-    body: event.body,
-    query: event.queryStringParameters || {},
-  };
-
-  const res = {
-    statusCode: 200,
-    headers: {},
-    body: '',
-    status: (code) => {
-      res.statusCode = code;
-      return res;
-    },
-    json: (data) => {
-      res.headers['Content-Type'] = 'application/json';
-      res.body = JSON.stringify(data);
-      return res;
-    },
-    send: (data) => {
-      res.body = data;
-      return res;
-    },
-    setHeader: (name, value) => {
-      res.headers[name] = value;
-    },
-  };
-
-  // Express 앱으로 요청 처리
-  return new Promise((resolve) => {
-    app(req, res);
-    resolve({
-      statusCode: res.statusCode,
-      headers: res.headers,
-      body: res.body,
-    });
-  });
-};
-
-// 로컬 개발 환경에서만 서버 시작
-if (process.env.NODE_ENV !== 'production') {
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 3000 for local development.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '3000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-  }, () => {
-    log(`serving on port ${port}`);
-    
-    // 주가 업데이터 시작
-    priceUpdater.start();
-    
-    // 정기적인 캐시 정리 (5분마다)
-    setInterval(() => {
-      cache.cleanup();
-      const stats = cache.getStats();
-      if (stats.memoryUsageMB > 10) { // 10MB 이상 사용 시 로그
-        log(`Cache stats: ${stats.size}/${stats.maxSize} items, ${stats.memoryUsageMB.toFixed(2)}MB used`);
-      }
-    }, 5 * 60 * 1000);
-  });
-}
+// ALWAYS serve the app on the port specified in the environment variable PORT
+// Other ports are firewalled. Default to 5000 for Railway, 3000 for local development.
+// this serves both the API and the client.
+// It is the only port that is not firewalled.
+const port = parseInt(process.env.PORT || '5000', 10);
+server.listen({
+  port,
+  host: "0.0.0.0",
+}, () => {
+  log(`serving on port ${port}`);
+  
+  // 주가 업데이터 시작
+  priceUpdater.start();
+  
+  // 정기적인 캐시 정리 (5분마다)
+  setInterval(() => {
+    cache.cleanup();
+    const stats = cache.getStats();
+    if (stats.memoryUsageMB > 10) { // 10MB 이상 사용 시 로그
+      log(`Cache stats: ${stats.size}/${stats.maxSize} items, ${stats.memoryUsageMB.toFixed(2)}MB used`);
+    }
+  }, 5 * 60 * 1000);
+});
