@@ -295,11 +295,13 @@ export class MemStorage implements IStorage {
     this.priceHistory = new Map();
     this.dataDir = join(process.cwd(), 'data');
 
-    // 비동기 초기화를 즉시 실행 (에러 처리 개선)
-    this.initializeData().catch((error) => {
-      console.error('Storage initialization failed:', error);
-      // 초기화 실패 시에도 기본 데이터로 계속 진행
-      this.initializeMockData();
+    // 즉시 기본 데이터 로드 (동기)
+    this.initializeMockData();
+    this.initialized = true;
+
+    // 비동기로 파일 데이터 로드 (백그라운드)
+    this.loadData().catch((error) => {
+      console.error('Background data loading failed:', error);
     });
   }
 
@@ -326,9 +328,8 @@ export class MemStorage implements IStorage {
   }
 
   private async ensureInitialized() {
-    if (!this.initialized) {
-      await this.initializeData();
-    }
+    // 이미 초기화됨 (동기 초기화로 변경)
+    return;
   }
 
   private async loadData() {
