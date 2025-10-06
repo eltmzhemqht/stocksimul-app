@@ -74,23 +74,17 @@ if (app.get("env") === "development") {
   serveStatic(app);
 }
 
-// Vercel에서는 서버를 직접 시작하지 않음
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 3000 for local development.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '3000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-  }, () => {
-    log(`serving on port ${port}`);
-    
-    // 주가 업데이터 시작
-    priceUpdater.start();
-  });
-}
-
-// Vercel 서버리스 함수로 export
-export default app;
+// ALWAYS serve the app on the port specified in the environment variable PORT
+// Other ports are firewalled. Default to 5000 for Railway, 3000 for local development.
+// this serves both the API and the client.
+// It is the only port that is not firewalled.
+const port = parseInt(process.env.PORT || '5000', 10);
+server.listen({
+  port,
+  host: "0.0.0.0",
+}, () => {
+  log(`serving on port ${port}`);
+  
+  // 주가 업데이터 시작
+  priceUpdater.start();
+});
