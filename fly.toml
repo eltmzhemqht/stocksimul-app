@@ -19,3 +19,6 @@ primary_region = "nrt"  # Tokyo (한국에서 가장 가까움)
   cpu_kind = "shared"
   cpus = 1
   memory_mb = 256
+
+[deploy]
+  release_command = "echo 'Deploying StockSimul App'"
