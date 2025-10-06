@@ -2,6 +2,5 @@
 const { createServer } = require('http');
 
 // Express 앱을 import
-const app = require('../dist/index.js');
-
-module.exports = app;
+import app from '../dist/index.js';
+export default app;
