@@ -4,6 +4,7 @@ import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { priceUpdater } from "./priceUpdater";
+import { cache } from "./cache";
 
 const app = express();
 app.use(express.json());
@@ -133,5 +134,14 @@ if (process.env.NODE_ENV !== 'production') {
     
     // 주가 업데이터 시작
     priceUpdater.start();
+    
+    // 정기적인 캐시 정리 (5분마다)
+    setInterval(() => {
+      cache.cleanup();
+      const stats = cache.getStats();
+      if (stats.memoryUsageMB > 10) { // 10MB 이상 사용 시 로그
+        log(`Cache stats: ${stats.size}/${stats.maxSize} items, ${stats.memoryUsageMB.toFixed(2)}MB used`);
+      }
+    }, 5 * 60 * 1000);
   });
 }

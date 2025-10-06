@@ -95,36 +95,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/holdings", async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
-      const holdings = await storage.getHoldings(userId);
+      const cacheKey = `holdings:${userId}`;
+      let holdingsWithStock = cache.get(cacheKey);
       
-      if (holdings.length === 0) {
-        return res.json([]);
-      }
+      if (!holdingsWithStock) {
+        const holdings = await storage.getHoldings(userId);
+        
+        if (holdings.length === 0) {
+          return res.json([]);
+        }
 
-      // 모든 주식 정보를 한 번에 가져오기
-      const allStocks = await storage.getAllStocks();
-      const stockMap = new Map(allStocks.map(stock => [stock.id, stock]));
-      
-      const holdingsWithStock: HoldingWithStock[] = holdings.map((holding) => {
-        const stock = stockMap.get(holding.stockId);
-        if (!stock) {
-          throw new Error(`Stock not found: ${holding.stockId}`);
+        // 모든 주식 정보를 한 번에 가져오기 (캐시 활용)
+        const allStocksCacheKey = "stocks:all";
+        let allStocks = cache.get(allStocksCacheKey);
+        if (!allStocks) {
+          allStocks = await storage.getAllStocks();
+          cache.set(allStocksCacheKey, allStocks, 5 * 60 * 1000);
         }
         
-        const currentPrice = Number(stock.currentPrice);
-        const averagePrice = Number(holding.averagePrice);
-        const currentValue = currentPrice * holding.quantity;
-        const profitLoss = (currentPrice - averagePrice) * holding.quantity;
-        const profitLossPercent = ((currentPrice - averagePrice) / averagePrice) * 100;
+        const stockMap = new Map(allStocks.map(stock => [stock.id, stock]));
+        
+        holdingsWithStock = holdings.map((holding) => {
+          const stock = stockMap.get(holding.stockId);
+          if (!stock) {
+            throw new Error(`Stock not found: ${holding.stockId}`);
+          }
+          
+          const currentPrice = Number(stock.currentPrice);
+          const averagePrice = Number(holding.averagePrice);
+          const currentValue = currentPrice * holding.quantity;
+          const profitLoss = (currentPrice - averagePrice) * holding.quantity;
+          const profitLossPercent = ((currentPrice - averagePrice) / averagePrice) * 100;
 
-        return {
-          ...holding,
-          stock,
-          currentValue,
-          profitLoss,
-          profitLossPercent,
-        };
-      });
+          return {
+            ...holding,
+            stock,
+            currentValue,
+            profitLoss,
+            profitLossPercent,
+          };
+        });
+        
+        // 1분 캐시 (보유 종목은 자주 변하지 않음)
+        cache.set(cacheKey, holdingsWithStock, 1 * 60 * 1000);
+      }
       
       res.json(holdingsWithStock);
     } catch (error) {
@@ -135,26 +149,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/transactions", async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
-      const transactions = await storage.getTransactions(userId);
+      const cacheKey = `transactions:${userId}`;
+      let transactionsWithStock = cache.get(cacheKey);
       
-      if (transactions.length === 0) {
-        return res.json([]);
-      }
-
-      // 모든 주식 정보를 한 번에 가져오기
-      const allStocks = await storage.getAllStocks();
-      const stockMap = new Map(allStocks.map(stock => [stock.id, stock]));
-      
-      const transactionsWithStock: TransactionWithStock[] = transactions.map((transaction) => {
-        const stock = stockMap.get(transaction.stockId);
-        if (!stock) {
-          throw new Error(`Stock not found: ${transaction.stockId}`);
+      if (!transactionsWithStock) {
+        const transactions = await storage.getTransactions(userId);
+        
+        if (transactions.length === 0) {
+          return res.json([]);
         }
-        return {
-          ...transaction,
-          stock,
-        };
-      });
+
+        // 모든 주식 정보를 한 번에 가져오기 (캐시 활용)
+        const allStocksCacheKey = "stocks:all";
+        let allStocks = cache.get(allStocksCacheKey);
+        if (!allStocks) {
+          allStocks = await storage.getAllStocks();
+          cache.set(allStocksCacheKey, allStocks, 5 * 60 * 1000);
+        }
+        
+        const stockMap = new Map(allStocks.map(stock => [stock.id, stock]));
+        
+        transactionsWithStock = transactions.map((transaction) => {
+          const stock = stockMap.get(transaction.stockId);
+          if (!stock) {
+            throw new Error(`Stock not found: ${transaction.stockId}`);
+          }
+          return {
+            ...transaction,
+            stock,
+          };
+        });
+        
+        // 30초 캐시 (거래 내역은 자주 변할 수 있음)
+        cache.set(cacheKey, transactionsWithStock, 30 * 1000);
+      }
       
       res.json(transactionsWithStock);
     } catch (error) {
@@ -165,39 +193,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/portfolio/stats", async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const INITIAL_BALANCE = 10000000;
-      const holdings = await storage.getHoldings(userId);
-      const cashBalance = Number(user.balance);
+      const cacheKey = `portfolio:stats:${userId}`;
+      let stats = cache.get(cacheKey);
       
-      let holdingsValue = 0;
-      let totalCost = 0;
-
-      for (const holding of holdings) {
-        const stock = await storage.getStock(holding.stockId);
-        if (stock) {
-          const currentPrice = Number(stock.currentPrice);
-          const averagePrice = Number(holding.averagePrice);
-          holdingsValue += currentPrice * holding.quantity;
-          totalCost += averagePrice * holding.quantity;
+      if (!stats) {
+        const user = await storage.getUser(userId);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
         }
+
+        const INITIAL_BALANCE = 10000000;
+        const holdings = await storage.getHoldings(userId);
+        const cashBalance = Number(user.balance);
+        
+        let holdingsValue = 0;
+        let totalCost = 0;
+
+        // 모든 주식 정보를 한 번에 가져오기 (캐시 활용)
+        const allStocksCacheKey = "stocks:all";
+        let allStocks = cache.get(allStocksCacheKey);
+        if (!allStocks) {
+          allStocks = await storage.getAllStocks();
+          cache.set(allStocksCacheKey, allStocks, 5 * 60 * 1000);
+        }
+        
+        const stockMap = new Map(allStocks.map(stock => [stock.id, stock]));
+
+        for (const holding of holdings) {
+          const stock = stockMap.get(holding.stockId);
+          if (stock) {
+            const currentPrice = Number(stock.currentPrice);
+            const averagePrice = Number(holding.averagePrice);
+            holdingsValue += currentPrice * holding.quantity;
+            totalCost += averagePrice * holding.quantity;
+          }
+        }
+
+        const totalValue = cashBalance + holdingsValue;
+        const totalProfitLoss = totalValue - INITIAL_BALANCE;
+        const totalProfitLossPercent = INITIAL_BALANCE > 0 ? (totalProfitLoss / INITIAL_BALANCE) * 100 : 0;
+
+        stats = {
+          totalValue,
+          totalCost,
+          totalProfitLoss,
+          totalProfitLossPercent,
+          cashBalance,
+        };
+        
+        // 30초 캐시 (포트폴리오 통계는 자주 변할 수 있음)
+        cache.set(cacheKey, stats, 30 * 1000);
       }
-
-      const totalValue = cashBalance + holdingsValue;
-      const totalProfitLoss = totalValue - INITIAL_BALANCE;
-      const totalProfitLossPercent = INITIAL_BALANCE > 0 ? (totalProfitLoss / INITIAL_BALANCE) * 100 : 0;
-
-      const stats: PortfolioStats = {
-        totalValue,
-        totalCost,
-        totalProfitLoss,
-        totalProfitLossPercent,
-        cashBalance,
-      };
 
       res.json(stats);
     } catch (error) {
@@ -335,6 +381,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           total: totalCost.toFixed(2),
         });
 
+        // 거래 후 관련 캐시 무효화
+        cache.delete(`holdings:${userId}`);
+        cache.delete(`transactions:${userId}`);
+        cache.delete(`portfolio:stats:${userId}`);
+
         res.json({ message: "Purchase successful" });
       } else if (type === "sell") {
         const existingHolding = await storage.getHolding(userId, stockId);
@@ -366,6 +417,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price: currentPrice.toFixed(2),
           total: totalCost.toFixed(2),
         });
+
+        // 거래 후 관련 캐시 무효화
+        cache.delete(`holdings:${userId}`);
+        cache.delete(`transactions:${userId}`);
+        cache.delete(`portfolio:stats:${userId}`);
 
         res.json({ message: "Sale successful" });
       } else {

@@ -7,9 +7,15 @@ interface CacheItem<T> {
 export class MemoryCache {
   private cache = new Map<string, CacheItem<any>>();
   private readonly defaultTTL = 5 * 60 * 1000; // 5분
-  private readonly maxSize = 1000; // 최대 캐시 항목 수
+  private readonly maxSize = 500; // 최대 캐시 항목 수 (메모리 절약)
+  private readonly maxMemoryMB = 50; // 최대 메모리 사용량 (MB)
 
   set<T>(key: string, data: T, ttl: number = this.defaultTTL): void {
+    // 메모리 사용량 확인
+    if (this.getMemoryUsage() > this.maxMemoryMB) {
+      this.evictOldest();
+    }
+    
     // 캐시 크기 제한 확인
     if (this.cache.size >= this.maxSize) {
       this.evictOldest();
@@ -20,6 +26,17 @@ export class MemoryCache {
       timestamp: Date.now(),
       ttl
     });
+  }
+
+  // 메모리 사용량 추정 (MB)
+  private getMemoryUsage(): number {
+    let totalSize = 0;
+    for (const [key, item] of this.cache.entries()) {
+      totalSize += key.length * 2; // 문자열 크기 (UTF-16)
+      totalSize += JSON.stringify(item.data).length * 2; // 데이터 크기
+      totalSize += 24; // 객체 오버헤드
+    }
+    return totalSize / (1024 * 1024); // MB로 변환
   }
 
   // 가장 오래된 항목 제거 (LRU 방식)
@@ -75,8 +92,21 @@ export class MemoryCache {
   getStats() {
     return {
       size: this.cache.size,
+      maxSize: this.maxSize,
+      memoryUsageMB: this.getMemoryUsage(),
+      maxMemoryMB: this.maxMemoryMB,
       keys: Array.from(this.cache.keys())
     };
+  }
+
+  // 메모리 정리 (만료된 항목들 제거)
+  cleanup(): void {
+    const now = Date.now();
+    for (const [key, item] of this.cache.entries()) {
+      if (now - item.timestamp > item.ttl) {
+        this.cache.delete(key);
+      }
+    }
   }
 }
 

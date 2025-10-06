@@ -95,24 +95,35 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 3 * 60 * 1000, // 3분 - 서버 캐시와 동기화
-      gcTime: 10 * 60 * 1000, // 10분 - 가비지 컬렉션 시간
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      // 더 공격적인 캐싱 전략
+      staleTime: 5 * 60 * 1000, // 5분 - 데이터 신선도
+      gcTime: 15 * 60 * 1000, // 15분 - 메모리 보관 시간
+      // 스마트 재시도 로직
       retry: (failureCount, error: any) => {
         // 네트워크 오류나 타임아웃은 재시도
         if (error?.message?.includes('시간이 초과') || error?.message?.includes('네트워크')) {
-          return failureCount < 1; // 1번만 재시도
+          return failureCount < 2; // 2번 재시도
         }
         // 4xx 에러는 재시도하지 않음
         if (error?.status >= 400 && error?.status < 500) {
           return false;
         }
-        // 5xx 에러는 최대 1번 재시도
-        return failureCount < 1;
+        // 5xx 에러는 최대 2번 재시도
+        return failureCount < 2;
       },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // 최대 5초
+      retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 3000), // 최대 3초, 더 빠른 재시도
     },
     mutations: {
-      retry: false,
+      retry: (failureCount, error: any) => {
+        // 뮤테이션은 네트워크 오류만 재시도
+        if (error?.message?.includes('시간이 초과') || error?.message?.includes('네트워크')) {
+          return failureCount < 1;
+        }
+        return false;
+      },
+      retryDelay: 1000,
     },
   },
 });
