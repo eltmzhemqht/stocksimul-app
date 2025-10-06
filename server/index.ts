@@ -55,7 +55,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Vercel 서버리스 함수로 작동하도록 수정
 const server = await registerRoutes(app);
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -78,10 +77,10 @@ if (app.get("env") === "development") {
 // Vercel에서는 서버를 직접 시작하지 않음
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 8080 for Fly.io, 5000 for others.
+  // Other ports are firewalled. Default to 3000 for local development.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '8080', 10);
+  const port = parseInt(process.env.PORT || '3000', 10);
   server.listen({
     port,
     host: "0.0.0.0",
